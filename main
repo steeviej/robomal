@@ -1,0 +1,129 @@
+.include "Arithmetic.s"
+.include "Bluetooth.s"
+.include "Branches.s"
+.include "config.c"
+.include "Data.s"
+# .include "InputCapture.s"
+.include "Joystick.s"
+.include "LEDs.s"
+.include "Motors.s"
+.include "OutputCompare.s"
+.include "RCI.s"
+.include "ROBOMAL.s"
+.include "SPI.s"
+.include "Timers.s"
+.include "UART.s"
+
+
+.global main
+    
+    .data
+    all_data:
+       
+#     Bluetooth_Outbox: .space 8
+    
+#     end_Bluetooth_Outbox: 
+    
+    
+    .text
+        
+    .ent main
+    main:
+    
+	# jal setupBluetoothSlave  # Bluetooth plugged in to Port JH
+	
+	MOVE $s0, $zero	    # Clear the Accumulator
+	MOVE $s1, $zero	    # Clear Input Compare
+	MOVE $s2, $zero	    # Clear Input Compare
+	MOVE $s3, $zero	    # Clear Input Compare
+	MOVE $s4, $zero	    # Clear Input Compare
+	# Set interrupts for multivectored mode
+# 	LI $t0, 1<<12
+# 	SW $t0, INTCONSET
+
+	# jal setupMotorPins	# Setup Output Pins of JD
+	
+	# jal setupIC2
+
+
+	# Setup Timers ########################################################
+
+	# Setup Timer 2 For 1:8 with PR2 = 99 (50kHz)
+	# li $a0, 0b011
+	# li $a1, 99
+	# jal setupTimer2
+# 	
+# 	# Setup Timer 45
+# 	li $a0, 0b011
+# 	li $a1, 32000  # ADJUST THIS VALUE FOR MOTOR CALIBRATION!
+# 	jal setupTimer45
+# 	# Note: Timer45 is NOT enabled after calling this subroutine
+# 	
+	# LI $a0, 0	    # OC2 --> Timer 2 & 3
+	# LI $a1, 0	    # OC2 and OC3 --> 16-Bit
+	# jal setupOC2    # Initialize OC2
+	# jal setupOC3   # Initialize OC3
+	
+	jal setupJoystick
+	jal setupBluetoothSlave
+	
+	# ei
+ 	mainLoop:
+# 	ei
+# 	LA $s1, ROBOMAL_INST_MEMORY # 
+# 	jal clearInstructionMemory
+	
+	
+	
+# 	getData:
+# 	jal receiveUART2Word
+# 	SW $v0, 0($s1)
+# 	BEQ $v0, 0x3F, executeInstructions   # A '?' starts the program
+# 	ADDI $s1, 4
+# 	j getData
+# 	
+# 	executeInstructions:
+# 	LA $s1, ROBOMAL_INST_MEMORY
+# 	
+# 	runClockCycleLoop:
+	
+	# Read the Joystick State using SPI
+	jal readJoystick
+	
+	jal sendUART2Word
+	# Save the Joystick Reads to s0 and s1
+# 	MOVE $s0, $v0	# s0 --> X-Axis
+# 	MOVE $s1, $v1	# s1 --> Y-Axis
+	
+# # 	# Send Joystick Readings
+# # # 	LA $a0, Bluetooth_Outbox
+# # # 	SW $s0, 0($a0)
+# # # 	SW $s1, 4($a0)
+# # # 	LA $a1, end_Bluetooth_Outbox
+# # # 	jal sendUART2message
+# 		
+	# Determine the "Zone" the joystick is in, ie forward, backward, etc
+	# MOVE $a0, $s0
+	# MOVE $a1, $s1
+	# jal joystickZoneBranching
+	
+	# Set Motor Duty Cycles and Directions based on Zone and raw read.
+	# MOVE $a2, $v0
+	# MOVE $a3, $v1
+	# jal joystickBranchDecision
+		
+# 	JAL runClockCycle
+# 	ADDI $s1, $s1, 4    # Increments to next instruction
+# 	LW $t0, 0($s1)
+# 	BEQ $t0, 0x3F, endMain   # Checks to see if Instructions have ended
+# 	j runClockCycleLoop
+# 	endMain:
+# 	di
+	j mainLoop
+	di
+	
+    .end main
+    
+#     .section .vector_20, code
+#     j Timer45Handler
+    
